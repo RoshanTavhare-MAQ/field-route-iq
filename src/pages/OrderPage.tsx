@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getAccounts, getProducts } from '../data'
+import { getAccounts, getProducts, getPromotions } from '../data'
+import { priceOrder } from '../pricing/engine'
 import { saveOrder } from '../state/orders'
-import type { PricedLine } from '../state/orders'
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100
@@ -15,7 +15,9 @@ function OrderPage() {
   const [cart, setCart] = useState<Record<string, number>>({})
 
   const products = getProducts()
+  const promotions = getPromotions()
   const cartProducts = products.filter((p) => cart[p.id])
+  const orderDate = new Date().toISOString().slice(0, 10)
 
   function setQty(productId: string, qty: number) {
     setCart((prev) => {
@@ -29,32 +31,57 @@ function OrderPage() {
     })
   }
 
-  // TODO: promotions are not applied — see SPEC.md
-  const lines: PricedLine[] = cartProducts.map((p) => {
-    const qty = cart[p.id]
-    const gross = round2(p.unitPrice * qty)
-    return {
-      productId: p.id,
-      qty,
-      unitPrice: p.unitPrice,
-      gross,
-      appliedPromoId: null,
-      discount: 0,
-      net: gross,
-    }
-  })
+  const draftLines = cartProducts.map((p) => ({
+    productId: p.id,
+    qty: cart[p.id],
+  }))
 
-  const subtotal = round2(lines.reduce((sum, line) => sum + line.net, 0))
-  const total = subtotal
+  const pricedOrder = accountId
+    ? priceOrder({
+        accountId,
+        date: orderDate,
+        lines: draftLines,
+      })
+    : {
+        lines: cartProducts.map((p) => {
+          const qty = cart[p.id]
+          const gross = round2(p.unitPrice * qty)
+          return {
+            productId: p.id,
+            qty,
+            unitPrice: p.unitPrice,
+            gross,
+            appliedPromoId: null,
+            discount: 0,
+            net: gross,
+          }
+        }),
+        orderLevel: { appliedPromoId: null, discount: 0 },
+        subtotal: round2(
+          cartProducts.reduce((sum, p) => sum + round2(p.unitPrice * cart[p.id]), 0),
+        ),
+        total: round2(
+          cartProducts.reduce((sum, p) => sum + round2(p.unitPrice * cart[p.id]), 0),
+        ),
+      }
+
+  const lines = pricedOrder.lines
+  const subtotal = pricedOrder.subtotal
+  const total = pricedOrder.total
+  const totalDiscount = round2(
+    lines.reduce((sum, line) => sum + line.discount, 0) + pricedOrder.orderLevel.discount,
+  )
+
+  function getPromoName(promoId: string | null): string {
+    if (!promoId) return '—'
+    return promotions.find((promo) => promo.id === promoId)?.name ?? promoId
+  }
 
   function handleSubmit() {
     saveOrder({
       accountId,
-      date: new Date().toISOString().slice(0, 10),
-      lines,
-      orderLevel: { appliedPromoId: null, discount: 0 },
-      subtotal,
-      total,
+      date: orderDate,
+      ...pricedOrder,
     })
     navigate('/visits')
   }
@@ -140,7 +167,7 @@ function OrderPage() {
                           </button>
                         </span>
                       </td>
-                      <td>—</td>
+                      <td>{getPromoName(line.appliedPromoId)}</td>
                       <td className="num">{line.gross.toFixed(2)}</td>
                     </tr>
                   )
@@ -156,7 +183,7 @@ function OrderPage() {
             </div>
             <div className="summary-row">
               <span>Discount</span>
-              <span data-testid="order-discount">0.00</span>
+              <span data-testid="order-discount">{totalDiscount.toFixed(2)}</span>
             </div>
             <div className="summary-row summary-total">
               <span>Total</span>
