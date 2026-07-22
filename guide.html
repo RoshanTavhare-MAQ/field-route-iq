@@ -161,8 +161,11 @@
       <div class="step"><div class="n">✓</div><div>
         <h3>Install the GitHub Copilot CLI</h3>
         <div class="cmd">npm install -g @github/copilot</div>
-        <p>Then run <code>copilot --version</code>. If it's "not recognized," your npm folder isn't on
-          PATH — in PowerShell run this once and reopen the terminal:</p>
+        <p>On Windows PowerShell, run this once so the CLI is allowed to run (fixes the
+          "running scripts is disabled" error):</p>
+        <div class="cmd">Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force</div>
+        <p>Then check <code>copilot --version</code>. If it's "not recognized," reopen your terminal;
+          if still not found, add npm to PATH and reopen:</p>
         <div class="cmd">[Environment]::SetEnvironmentVariable('Path',[Environment]::GetEnvironmentVariable('Path','User')+';'+"$env:AppData\npm",'User')</div>
       </div></div>
       <div class="step"><div class="n">✓</div><div>
