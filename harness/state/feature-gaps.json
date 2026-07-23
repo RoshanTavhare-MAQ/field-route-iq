@@ -1,0 +1,121 @@
+[
+  {
+    "id": "pricing-engine",
+    "name": "Pricing Engine — priceOrder",
+    "status": "complete",
+    "scored": true,
+    "priority": 1,
+    "evidence": [
+      "src/pricing/engine.ts exports priceOrder with SPEC §2 types and loader-based data access",
+      "No TODO/FIXME markers remain under src/ after OrderPage wiring was completed",
+      "VS Code diagnostics report 0 errors in src/pricing/engine.ts",
+      "Known traps from pricingV1.ts are avoided in the current implementation (best-for-customer, half-up rounding, inclusive validTo, repeating BOGO)"
+    ],
+    "affectedFiles": [
+      "src/pricing/engine.ts"
+    ],
+    "expectedBehavior": "Export priceOrder(input: PriceOrderInput): PricedOrder. Applies active, eligible promotions (percent_off, bogo, threshold) using best-for-customer selection. Uses half-up rounding to 2dp on every money field. Throws on unknown productId/accountId or invalid qty.",
+    "currentGap": "Implemented. Local build/test execution remains environment-limited because the workspace snapshot is missing the installed Vite payload used by the normal scripts.",
+    "suggestedApproach": "Retain the current loader-based implementation and rerun build/test in a complete install before submission.",
+    "verificationStrategy": "VS Code diagnostics: pass. oxlint direct run: pass. Full build/test should be re-run once vite/client and vite package files are present locally.",
+    "specSections": ["§2", "§3", "§4", "§5", "§6", "§7"],
+    "dependencies": [],
+    "completionPlan": null,
+    "reviewerApproved": true,
+    "blockingQuestions": [],
+    "knownTraps": [
+      "src/legacy/pricingV1.ts uses cumulative stacking — SPEC says best-for-customer, one promo per line",
+      "src/legacy/pricingV1.ts uses banker's rounding — SPEC says half-up",
+      "src/legacy/pricingV1.ts treats validTo as exclusive — SPEC says inclusive",
+      "src/legacy/pricingV1.ts caps BOGO at one group — SPEC says repeating groups",
+      "docs/NOTES.md 2025-10-21 says threshold qualifies on gross — SPEC says on line nets (post-discount)",
+      "docs/NOTES.md 2025-09-12 says validTo exclusive (ERP convention) — SPEC says inclusive"
+    ]
+  },
+  {
+    "id": "shelf-audit",
+    "name": "Shelf Audit — auditAccounts",
+    "status": "complete",
+    "scored": true,
+    "priority": 2,
+    "evidence": [
+      "src/audit/shelfAudit.ts exports auditAccounts with SPEC §10 shape",
+      "VS Code diagnostics report 0 errors in src/audit/shelfAudit.ts",
+      "Implementation uses getAccounts/getVisits from the shared typed loader surface"
+    ],
+    "affectedFiles": [
+      "src/audit/shelfAudit.ts"
+    ],
+    "expectedBehavior": "Export auditAccounts(asOf: string): AccountAudit[]. One entry per account, sorted by accountId asc. Each entry has weightedScore (weighted average of up to 3 most recent visits), trend (up/down/flat/null), daysSinceVisit, overdue (>14 days or no visits), and status (unvisited/critical/watch/healthy). Throws on invalid asOf format.",
+    "currentGap": "Implemented. Full build/test execution remains blocked by the incomplete local Vite install snapshot, not by editor diagnostics on this module.",
+    "suggestedApproach": "Keep the current weighted-score implementation and re-run build/test in a complete install before submission.",
+    "verificationStrategy": "VS Code diagnostics: pass. oxlint direct run: pass. Full build/test pending a complete local vite package.",
+    "specSections": ["§10"],
+    "dependencies": [],
+    "completionPlan": null,
+    "reviewerApproved": true,
+    "blockingQuestions": [],
+    "knownTraps": [
+      "docs/NOTES.md suggests renaming shelfScore to merchandisingIndex — SPEC uses shelfScore, ignore the rename",
+      "daysSinceVisit=14 is NOT overdue; only strictly >14 is overdue"
+    ]
+  },
+  {
+    "id": "route-settlement",
+    "name": "Route Settlement — settleRoute",
+    "status": "complete",
+    "scored": true,
+    "priority": 3,
+    "evidence": [
+      "src/settlement/settle.ts exports settleRoute and imports priceOrder from the pricing engine",
+      "VS Code diagnostics report 0 errors in src/settlement/settle.ts",
+      "Implementation aggregates money totals, category nets, promo usage, commission, and stop lists per SPEC §11"
+    ],
+    "affectedFiles": [
+      "src/settlement/settle.ts",
+      "src/pricing/engine.ts"
+    ],
+    "expectedBehavior": "Export settleRoute(input: SettleRouteInput): RouteSettlement. Validates routeId and that each order's accountId is on the route. Prices each order via priceOrder. Aggregates grossTotal, lineDiscountTotal, orderDiscountTotal, discountTotal, netTotal. Builds perCategory (line nets by category, sorted asc). Builds promoUsage (counts, sorted asc). Computes marginal commission (2%/5%/8%). Determines stopsVisited and stopsMissed in route order.",
+    "currentGap": "Implemented. Remaining verification risk is environmental because the local install is missing the Vite package required by the standard build/test commands.",
+    "suggestedApproach": "Retain the current import-through-priceOrder design and rerun build/test in a complete install before submission.",
+    "verificationStrategy": "VS Code diagnostics: pass. oxlint direct run: pass. Full build/test pending a complete local vite package.",
+    "specSections": ["§11"],
+    "dependencies": ["pricing-engine"],
+    "completionPlan": null,
+    "reviewerApproved": true,
+    "blockingQuestions": [],
+    "knownTraps": [
+      "Commission is MARGINAL (bracket-based), not a flat rate — a single-rate implementation is wrong",
+      "perCategory must exclude categories with zero net (absent, not 0)",
+      "stopsVisited deduplication: if an accountId appears twice in route stops, list it once at first position",
+      "Do NOT re-implement pricing — import priceOrder from ../pricing/engine"
+    ]
+  },
+  {
+    "id": "order-page-promotions",
+    "name": "OrderPage promotion wiring (UI)",
+    "status": "complete",
+    "scored": false,
+    "priority": 4,
+    "evidence": [
+      "src/pages/OrderPage.tsx now prices the cart through priceOrder when an account is selected",
+      "OrderPage displays per-line promotion names and order-level discount totals",
+      "VS Code diagnostics report 0 errors in src/pages/OrderPage.tsx"
+    ],
+    "affectedFiles": [
+      "src/pages/OrderPage.tsx"
+    ],
+    "expectedBehavior": "OrderPage should call priceOrder when the pricing engine is available and display per-line promotion names and order-level discounts.",
+    "currentGap": "Implemented.",
+    "suggestedApproach": "Keep the page wired to priceOrder so UI calculations and saved orders stay aligned with the scored pricing engine.",
+    "verificationStrategy": "VS Code diagnostics: pass. Existing data-testid hooks remain in place. Full UI test run is pending a complete local vite package.",
+    "specSections": ["§8"],
+    "dependencies": ["pricing-engine"],
+    "completionPlan": null,
+    "reviewerApproved": true,
+    "blockingQuestions": [],
+    "knownTraps": [
+      "SPEC §8 explicitly says 'not scored' — do not implement this unless all three scored modules are complete and credits allow"
+    ]
+  }
+]

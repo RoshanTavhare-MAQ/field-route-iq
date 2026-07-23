@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-07-22",
+  "activeFeatureId": null,
+  "phase": "discover",
+  "iteration": 4,
+  "completedFeatures": [
+    "pricing-engine",
+    "shelf-audit",
+    "route-settlement",
+    "order-page-promotions"
+  ],
+  "completionPlan": {
+    "filesCreated": [
+      "src/pricing/engine.ts",
+      "src/audit/shelfAudit.ts",
+      "src/settlement/settle.ts"
+    ],
+    "checklistCompleted": [
+      "priceOrder implements loader-based pricing with best-for-customer promo selection",
+      "auditAccounts implements visit filtering, weighted scoring, trend, recency, and status classification",
+      "settleRoute reuses priceOrder and computes route-level totals, category nets, promo usage, commission, and stop coverage",
+      "OrderPage now calls priceOrder, shows applied promotion names, and persists the priced order payload"
+    ],
+    "knownRisks": [
+      "Local build/test execution is environment-limited because the workspace snapshot is missing vite package files and vite/client types."
+    ],
+    "blockingQuestions": []
+  },
+  "validationSteps": {
+    "buildPasses": null,
+    "testsPasses": null,
+    "lintPasses": true,
+    "vsCodeTypeErrors": 0,
+    "manualSpotChecks": [
+      {
+        "scenario": "Price Order handles empty carts, invalid qty, unknown ids, best-promo selection, threshold selection, and half-up rounding",
+        "expectedOutcome": "Implementation matches SPEC §§2-7 with exact error strings and one line-level promo per line plus one threshold promo per order",
+        "verified": null
+      },
+      {
+        "scenario": "Shelf Audit handles 0-3+ counted visits, date filtering, weighted score boundaries, and overdue threshold at >14 days",
+        "expectedOutcome": "Implementation matches SPEC §10 with sorted account output and rounded weighted scores",
+        "verified": null
+      },
+      {
+        "scenario": "Route Settlement validates routes/stops, reuses priceOrder, aggregates totals, category nets, promo usage, commission, and visited/missed stops",
+        "expectedOutcome": "Implementation matches SPEC §11 and keeps pricing/settlement behavior aligned through the shared engine",
+        "verified": null
+      }
+    ],
+    "blockers": [
+      "npm run build and direct tsc -b are blocked locally because vite/client types are missing from this node_modules snapshot.",
+      "npm run test and direct vitest execution are blocked locally because node_modules/vite is missing from this workspace snapshot."
+    ],
+    "notes": "VS Code diagnostics report 0 errors in the touched TypeScript files. Direct oxlint run completed with no output, indicating success for the src tree."
+  },
+  "reviewerFeedback": {
+    "iteration": 4,
+    "decision": "approve",
+    "approvedAt": "2026-07-22",
+    "checklistResults": {
+      "roundingCorrect": true,
+      "dateWindowInclusive": true,
+      "bestForCustomerSelection": true,
+      "tiebBreakImplemented": true,
+      "bogoGroupsRepeating": true,
+      "bogoZeroDiscount": true,
+      "thresholdOnLineNets": true,
+      "emptyCartHandled": true,
+      "errorMessagesExact": true,
+      "partCImportsPriceOrder": true,
+      "auditSortedAscending": true,
+      "stopsVisitedDeduped": true,
+      "commissionMarginal": true,
+      "perCategoryKeysSorted": true,
+      "promoUsageKeysSorted": true,
+      "daysSinceVisit14NotOverdue": true,
+      "noLegacyCodeCopied": true,
+      "noDirectJsonImport": true,
+      "buildVerified": null,
+      "testVerified": null,
+      "lintVerified": true
+    },
+    "requiredChanges": [],
+    "warnings": [
+      "Local workspace snapshot is missing vite package contents and vite/client types, so build/test could not be executed in this environment.",
+      "Re-run build and test in a complete install before any final submission or release decision."
+    ],
+    "approvedFeatures": [
+      "pricing-engine",
+      "shelf-audit",
+      "route-settlement",
+      "order-page-promotions"
+    ]
+  },
+  "history": [
+    {
+      "featureId": "pricing-engine",
+      "phase": "discover",
+      "iteration": 0,
+      "timestamp": "2026-07-22T00:00:00.000Z"
+    },
+    {
+      "featureId": "pricing-engine",
+      "phase": "develop",
+      "iteration": 0,
+      "timestamp": "2026-07-22T00:00:00.000Z"
+    },
+    {
+      "featureId": "order-page-promotions",
+      "phase": "develop",
+      "iteration": 4,
+      "timestamp": "2026-07-22T00:00:00.000Z"
+    },
+    {
+      "featureId": "order-page-promotions",
+      "phase": "review",
+      "iteration": 4,
+      "timestamp": "2026-07-22T00:00:00.000Z"
+    }
+  ]
+}
